@@ -1,44 +1,111 @@
+
 const express = require("express")
 const cors = require("cors")
-const { dataMovies } = require("./dataMovie.js")
+const { popularMovies, weeklyMovies, allMovies } = require("./dataMoovice.js")
 
 const app = express()
 
+app.use(express.json()) // permet de recevoir body json dans les requetes
 app.use(cors())
 
-const port = 8001
+// middleware avec use
+app.use((req, res, next) => {
+    console.log("I received a request at ", new Date().toTimeString());
 
-
-
-app.get("/country/:countryName", (req, res) => {
- 
-
-    const countryName = req.params.countryName
-
-  
-
-    const dataCountry = countries.find(elem => {
-        console.log("countries.find current elem", elem);
-
-        return elem.name.toLowerCase() === countryName.toLowerCase()
-        
-    })
-
-    res.json(dataCountry)
+    next()
 })
 
-app.get("/countries/search/:valueToSearch", (req, res) => {
-    
-    const valueToSearch = req.params.valueToSearch.toLowerCase()
+const port = 9000
 
-    const countriesFound = countries.filter(elem => {
+app.get("/movies/popular", (req, res) => {
 
-        return elem.name.toLowerCase().includes(valueToSearch)
+    res.json(popularMovies)
+})
+
+app.get("/movies/weekly", (req, res) => {
+    const dateBegin = req.query.dateBegin
+    const dateEnd = req.query.dateEnd
+
+    // On pourrait chercher dans weeklyMovies ou popularMovies les films 
+    // dont la release_date et entre les deux params
+
+    res.json(weeklyMovies)
+})
+
+// middleware pour utiliser
+const checkIdValid = (req, res, next) => {
+    const id = parseInt(req.params.id)
+
+    if (isNaN(id)) {
+        res.json({
+            errorMessage: "The id must be a number"
+        })
+    } else {
+        next()
+    }
+}
+
+// code pour la route /movies/:id sans query params
+// app.get("/movies/:id", checkIdValid, (req, res) => {
+//     const id = parseInt(req.params.id)
+
+//     const movieFound = allMovies.find(elem => {
+//         return elem.id === id
+//     })
+
+//     if (movieFound) {
+//         res.json(movieFound)
+//     } else {
+//         res.json({
+//             errorMessage: "The movie was not found"
+//         })
+//     }
+// })
+
+// code pour la route /movies/:id AVEC query params
+app.get("/movies/:id", checkIdValid, (req, res) => {
+    const id = parseInt(req.params.id)
+    const query = req.query
+
+    const movieFound = allMovies.find(elem => {
+        return elem.id === id
     })
 
-    console.log("countriesFound", countriesFound);
+    if (movieFound) {
 
-    res.json(countriesFound)
+        if (query.fields) {
+            if (Object.keys(movieFound).includes(query.fields)) {
+
+                res.json({
+                    [query.fields]: movieFound[query.fields]
+                })
+            }
+        } else {
+            res.json(movieFound)
+        }
+
+    } else {
+        res.json({
+            errorMessage: "The movie was not found"
+        })
+    }
+})
+
+app.post("/movies/add", (req, res) => {
+    const newMovie = req.body
+    
+    allMovies.push(newMovie)
+
+    res.json({
+        message: "Movie added!"
+    })
+})
+
+// gestion d'erreurs
+app.get('*', (req, res) => {
+    res.json({
+        errorMessage: "The route doesn't exist :'("
+    })
 })
 
 app.listen(port, () => {
