@@ -24,22 +24,22 @@ app.use(function (req, res, next) {
 //       res.json(superHeros)
 //   })
 
-let name = req.params.name;
-let powers = req.params.power;
-let color = req.params.color;
-let isAlive = req.params.isAlive;
-let age = req.params.age;
-let image = req.params.image;
+
 app.get("/heroes/:name", (req, res) => {
-    res.json({
-        message: `Le Heros :${name,powers,color,isAlive,age,image}!`,
-    });
+    let name = req.params.name;
+    const nameZer = superHeros.filter(hero => {
+        
+        return hero.name === req.params.name
+    })
+    res.json(nameZer);
 });
 
 app.get("/heroes/:name/powers", (req, res) => {
-    res.json({
-        message: `Hello ${powers}!`,
-    });
+   const pouvZer = superHeros.filter(pouv => {
+        
+    return pouv.powers === req.params.power
+})
+    res.json(power)
 })
 
 // app.post("/heroes", (req, res) => {

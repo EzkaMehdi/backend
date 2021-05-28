@@ -24,4 +24,6 @@ const superHeros = [
         image: "https://aws.vdkimg.com/film/2/5/1/1/251170_backdrop_scale_1280xauto.jpg"
     }
 ]
+
+
 module.exports = {superHeros} 
