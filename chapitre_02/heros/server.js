@@ -1,82 +1,116 @@
 const express = require("express")
 const cors = require("cors");
 const {superHeros} = require("./dataHeroes")
-const app = express();
 
+const port = 8000
 
-app.use(express.json())
+const app = express()
+
+const debug = (req, res, next) => {
+    console.log("I received a request!");
+
+    next()
+}
+
 app.use(cors())
 
-const port = 8000;
-app.listen(port, () => {
-  console.log('Server started on port: ' + port);
-});
+app.use(express.json())
 
+app.use(debug)
 
+app.get("/heroes", (req, res) => {
+    res.json(superHeros)
+})
 
-app.use(function (req, res, next) {
-    console.log('Time:', Date.now());
-    next();
-  });
-  
- 
 app.get("/heroes/:name", (req, res) => {
-    let name = req.params.name;
-    const nameZer = superHeros.filter(hero => {
-        
-        return hero.name === name
-    })
-    if (nameZer.length) {
-        res.json(nameZer)
-    } else {
-        res.json({ message: "Noooo!" })
+    const nameHero = req.params.name.toLowerCase()
+
+    for (var i = 0; i < superHeros.length; i++) {
+
+        if (superHeros[i].name.toLowerCase() === nameHero) {
+            res.json(superHeros[i])
+        }
     }
-});
 
-
-
-    app.get("/heroes/:name/powers", (req, res) => {
-        let name = req.params.name.toLowerCase()
-    
-    
-        const nameZer = superHeros.filter(hero => {
-            return hero.name === name
-        })
-    
-        if (nameZer.length) {
-            res.json(nameZer[0].power)
-        } else {
-            res.json({ message: "noooooooo!" })
-        }
-    
+    res.json({
+        message: "Hero not found"
     })
-    
-    app.post("/heroes/:name/powers", (req, res) => {
-        let name = req.params.name.toLowerCase()
-        let newPower = req.body.newPower
-    
-        const nameZer = superHeros.filter(hero => {
-            return hero.name === name
-        })
-    
-        if (nameZer.length) {
-    
-            superHeros.forEach((hero, index) => {
-    
-                if (hero.name === nameZer[0].name) {
-                    superHeros[index].power.push(newPower)
-                }
-            });
-    
-            res.json({ message: "Pouvoir ajouté !" })
-    
-        } else {
-            res.json({ message: "nooooooooo!" })
-        }
-    })
-    
+})
 
-// app.post("/heroes", (req, res) => {
-//     console.log("Ok, heros ajouté !")
+app.get("/heroes/:name/powers", (req, res) => {
+    const nameHero = req.params.name.toLowerCase()
+
+    const selectedHero = superHeros.find(elem => {
+        return nameHero === elem.name.toLowerCase()
+    })
+
+    res.json(selectedHero.power)
+})
+
+const transformName = (req, res, next) => {
+    // console.log("transformName req.body ", req.body);
+    // console.log("transformName req.body.name ", req.body.name);
+
+    if (req.body.name === undefined) {
+        res.json({
+            erroMessage: "To add a hero send at least he's name"
+        })
+    } else {
+        req.body.name = req.body.name.toLowerCase()
+
+        next()
+    }
+
+}
+
+app.post("/heroes", transformName, (req, res) => {
+    // console.log(req.body);
+
+    const hero = req.body
+
+    superHeros.push(hero)
+    const arrayToVerify = superHeros.filter(hero => hero.name.toLowerCase() === newHeroes.name)
+
+    if (arrayToVerify.length) {
+        res.json({ message: "Cet héros existe déja !" })
+    } else {
+        superHeros.push(newHeroes)
+        res.json({ message: "Ok, héros ajouté" })
+    }
+    
+    
+})
+
+app.post("/heroes/:name/powers", (req, res) => {
+    const nameHero = req.params.name.toLowerCase()
+
+    const selectedHero = superHeros.find(elem => {
+        return nameHero === elem.name.toLowerCase()
+    })
+
+    if (selectedHero) {
+
+
+        const heroPower = req.body.power
+
+        selectedHero.powers.push(heroPower)
+
+        res.json({
+            message: `Power added! The powers of ${nameHero} are ${selectedHero.power}`
+        })
+    } else {
+        res.json({
+            errorMessage: "Hero not found"
+        })
+    }
+})
+
+// app.delete("/heroes/:name",(req,res)=>{
+
+//     res.json()
 // })
+
+app.listen(port, () => {
+    console.log("Server is listenin at port ", port);
+})
 
