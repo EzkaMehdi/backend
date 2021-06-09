@@ -71,23 +71,40 @@ app.use(express.json())
 
 app.use(debug)
 
-app.get("/heroes", (req, res) => {
-    res.json(superHeros)
+app.get("/heroes", async (req, res) => {
+    try {
+        const heroes = await Hero.find()
+
+        res.json(heroes)
+    } catch (err) {
+        console.error(err)
+
+        res.json({ errorMessage: "There was a problem :(" }, 500)
+    }
+
 })
 
 app.get("/heroes/:name", (req, res) => {
     const nameHero = req.params.name.toLowerCase()
+    let selectedHero = {}
 
     for (var i = 0; i < superHeros.length; i++) {
 
         if (superHeros[i].name.toLowerCase() === nameHero) {
-            res.json(superHeros[i])
+            selectedHero = superHeros[i]
         }
     }
 
-    res.json({
-        message: "Hero not found"
-    })
+    if (Object.keys(selectedHero).length !== 0) {
+
+        res.json(selectedHero)
+    } else {
+
+        res.json({
+            message: "Hero not found"
+        })
+    }
+
 })
 
 app.get("/heroes/:name/powers", (req, res) => {
