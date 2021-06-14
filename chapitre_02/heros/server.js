@@ -1,59 +1,16 @@
 const express = require("express")
 const cors = require("cors")
 const mongoose = require("mongoose")
-const {superHeros} = require("./dataHeroes")
+const heroModel = require("./model/hero")
+const powerModel = require("./model/power")
 
-mongoose.connect("mongodb://localhost:27017/heros", (err) => {
+mongoose.connect("mongodb://localhost:27017/herosDB", { useNewUrlParser: true, useUnifiedTopology: true }, (err) => {
     if (err) {
-        console.error(err)
+        console.error(err);
     } else {
-        console.log("I'm connected to the database");
+        console.log("I'm connected to the database")
     }
 })
-
-const herosSchema = mongoose.Schema({
-    name: String,
-    power: Array,
-    color: String,
-    isAlive: Boolean,
-    age: Number,
-    image:String,
-    date: { type: Date, default: Date.now }
-})
-
-const Heros = mongoose.model("Heros", herosSchema)
-
-// Heros.insertMany([
-//     {name: "Iron Man",
-//     power: ["money"],
-//     color: "red",
-//     isAlive: true,
-//     age: 46,
-//     image: "https://blog.fr.playstation.com/tachyon/sites/10/2019/07/unnamed-file-18.jpg?resize=1088,500&crop_strategy=smart"
-// },
-// {
-//     name: "Thor",
-//     power: ["electricty", "worthy"],
-//     color: "blue",
-//     isAlive: true,
-//     age: 300,
-//     image: "https://www.bdfugue.com/media/catalog/product/cache/1/image/400x/17f82f742ffe127f42dca9de82fb58b1/9/7/9782809465761_1_75.jpg"
-// },
-// {
-//     name: "Daredevil",
-//     power: ["blind"],
-//     color: "red",
-//     isAlive: false,
-//     age: 30,
-//     image: "https://aws.vdkimg.com/film/2/5/1/1/251170_backdrop_scale_1280xauto.jpg"
-//     },
-
-// ]).then(data => {
-//     console.log(data);
-// }).catch(err => {
-//     console.error("Error insertMany Card: ", err);
-// })
-
 
 const port = 8000
 
@@ -73,116 +30,309 @@ app.use(debug)
 
 app.get("/heroes", async (req, res) => {
     try {
-        const heroes = await Hero.find()
+        const heroes = await heroModel.find().populate("powers", { name: 1, _id: 0 }).select({
+            name: 1,
+            powers: 1,
+            color: 1,
+            isAlive: 1,
+            age: 1,
+            image: 1,
+        })
 
         res.json(heroes)
     } catch (err) {
         console.error(err)
 
-        res.json({ errorMessage: "There was a problem :(" }, 500)
+        res.status(500).json({ errorMessage: "There was a problem :(" })
     }
 
 })
 
-app.get("/heroes/:name", (req, res) => {
-    const nameHero = req.params.name.toLowerCase()
-    let selectedHero = {}
-
-    for (var i = 0; i < superHeros.length; i++) {
-
-        if (superHeros[i].name.toLowerCase() === nameHero) {
-            selectedHero = superHeros[i]
+const findHero = async (name, withPowers) => {
+    try {
+        if (withPowers) {
+            return await heroModel.findOne({
+                name: {
+                    $regex: new RegExp("^" + name, "i")
+                }
+            }).populate("powers")
+        } else {
+            return await heroModel.findOne({
+                name: {
+                    $regex: new RegExp("^" + name, "i")
+                }
+            }).select({ powers: 0 })
         }
+
+    } catch (err) {
+        console.error(err)
+
+        return null
     }
+}
 
-    if (Object.keys(selectedHero).length !== 0) {
+app.get("/heroes/:name", async (req, res) => {
 
-        res.json(selectedHero)
-    } else {
+    try {
+        const nameHero = req.params.name
+        const hero = await findHero(nameHero, true)
 
-        res.json({
-            message: "Hero not found"
-        })
+        console.log("hero:", hero)
+
+        if (hero) {
+            res.json({ hero })
+        } else {
+            res.json({
+                message: "Hero not found"
+            })
+        }
+    } catch (err) {
+        console.error(err)
+
+        res.status(500).json({ errorMessage: "There was a problem :(" })
     }
 
 })
 
-app.get("/heroes/:name/powers", (req, res) => {
-    const nameHero = req.params.name.toLowerCase()
+app.get("/heroes/:name/powers", async (req, res) => {
+    try {
+        const nameHero = req.params.name
+        const hero = await findHero(nameHero, true)
 
-    const selectedHero = superHeros.find(elem => {
-        return nameHero === elem.name.toLowerCase()
-    })
+        if (hero) {
+            res.json({ powers: hero.powers })
+        } else {
+            res.json({
+                message: "Hero not found"
+            })
+        }
+    } catch (err) {
+        console.error(err)
 
-    res.json(selectedHero.power)
+        res.status(500).json({ errorMessage: "There was a problem :(" })
+    }
 })
 
 const transformName = (req, res, next) => {
-    // console.log("transformName req.body ", req.body);
-    // console.log("transformName req.body.name ", req.body.name);
-
     if (req.body.name === undefined) {
         res.json({
-            erroMessage: "To add a hero send at least he's name"
+            errorMessage: "To add a hero send at least he's name"
         })
     } else {
-        req.body.name = req.body.name.toLowerCase()
+        req.body.name = req.body.name
 
         next()
     }
-
 }
 
-app.post("/heroes", transformName, (req, res) => {
-    // console.log(req.body);
+app.post("/heroes", transformName, async (req, res, next) => {
 
-    const hero = req.body
+    try {
+        const heroBody = req.body
+        const hero = await findHero(heroBody.name)
 
-    superHeros.push(hero)
-    const arrayToVerify = superHeros.filter(hero => hero.name.toLowerCase() === newHeroes.name)
+        if (hero) {
+            res.status(400).json({
+                message: "The hero already exists"
+            })
+        } else {
+            next()
+        }
 
-    if (arrayToVerify.length) {
-        res.json({ message: "Cet héros existe déja !" })
-    } else {
-        superHeros.push(newHeroes)
-        res.json({ message: "Ok, héros ajouté" })
+    } catch (err) {
+        console.error(err)
+
+        res.status(500).json({ errorMessage: "There was a problem :(" })
     }
-    
-    
-})
+}, async (req, res) => {
 
-app.post("/heroes/:name/powers", (req, res) => {
-    const nameHero = req.params.name.toLowerCase()
+    try {
+        const hero = req.body
+        const powers = hero.powers
 
-    const selectedHero = superHeros.find(elem => {
-        return nameHero === elem.name.toLowerCase()
-    })
+        const existingPowers = await powerModel.find({ name: { $in: powers } })
 
-    if (selectedHero) {
+        console.log(existingPowers)
 
+        let savedPowers = []
 
-        const heroPower = req.body.power
+        if (existingPowers.length !== powers.length) {
+            
+            const differencePowers = powers.filter(elem =>  {
+                return !existingPowers.find(x => {
+                    return x.name === elem
+                })
+            })
 
-        selectedHero.powers.push(heroPower)
+            console.log("differencePowers", differencePowers)
+
+            const newPowers = differencePowers.map(elem => {
+                return {
+                    name: elem,
+                    force: 0
+                }
+            })
+
+            console.log("newPowers", newPowers)
+
+            savedPowers = await powerModel.insertMany(newPowers)
+
+            console.log("savedPowers", savedPowers)
+            
+        }
+ 
+        hero.powers = [...existingPowers, ...savedPowers]
+        
+        console.log("hero.powers", hero.powers)
+
+        // res.json("testing POST heroes")
+
+        const newHero = await heroModel.create(hero)
 
         res.json({
-            message: `Power added! The powers of ${nameHero} are ${selectedHero.power}`
+            message: "Ok, hero was created!",
+            newHero
         })
-    } else {
+    } catch (err) {
+        console.error(err)
+
+        res.status(500).json({ errorMessage: "There was a problem :(" })
+    }
+
+})
+
+app.post("/heroes/:name/powers", async (req, res) => {
+
+    try {
+        const nameHero = req.params.name
+
+        const hero = await findHero(nameHero)
+
+        if (hero) {
+            const heroPower = req.body.power
+
+            hero.powers.push(heroPower)
+
+            const heroNewPowers = hero.powers
+
+            await heroModel.updateOne({ name: hero.name }, { powers: heroNewPowers })
+
+            res.json({
+                message: "Ok, hero power was added!"
+            })
+
+        } else {
+            res.status(400).json({ errorMessage: "Hero was not found" })
+
+        }
+
+    } catch (err) {
+        console.error(err)
+
+        res.status(500).json({ errorMessage: "There was a problem :(" })
+    }
+
+})
+
+const continueIfHeroExists = async (req, res, next) => {
+    try {
+        const nameHero = req.params.name
+
+        const hero = await findHero(nameHero)
+
+        if (hero) {
+            next()
+        } else {
+            res.status(400).json({ errorMessage: "Hero was not found" })
+        }
+
+    } catch (err) {
+        console.error(err)
+
+        res.status(500).json({ errorMessage: "There was a problem :(" })
+    }
+}
+
+app.delete("/heroes/:name", continueIfHeroExists, async (req, res) => {
+    try {
+        const nameHero = req.params.name
+
+        await heroModel.deleteOne({
+            name: {
+                $regex: new RegExp("^" + nameHero, "i")
+            }
+        })
+
         res.json({
-            errorMessage: "Hero not found"
+            message: `${nameHero} effacé correctement`
         })
+    } catch (err) {
+        console.error(err)
+
+        res.status(500).json({ errorMessage: "There was a problem :(" })
     }
 })
 
-// app.delete("/heroes/:name",(req,res)=>{
+app.delete("/heroes/:name/power/:power", continueIfHeroExists, async (req, res) => {
+    try {
+        const nameHero = req.params.name
+        const heroPower = req.params.power
 
-//     res.json()
-// })
+        const hero = await findHero(nameHero)
+
+        const indexPower = hero.powers.findIndex(elem => {
+            return elem.toLowerCase() === heroPower.toLowerCase()
+        })
+
+        if (indexPower > -1) {
+            await heroModel.updateOne({ name: hero.name }, { $pull: { powers: heroPower } })
+
+            res.json({
+                message: `The power ${heroPower} of ${nameHero} was deleted`
+            })
+        } else {
+            res.status(400).json({
+                message: `The power ${heroPower} doesn't exists for ${nameHero}`
+            })
+        }
+    } catch (err) {
+        console.error(err)
+
+        res.status(500).json({ errorMessage: "There was a problem :(" })
+    }
+
+})
+
+app.put("/heroes/:name", continueIfHeroExists, async (req, res) => {
+
+    try {
+        const nameHero = req.params.name
+        const newValuesHero = req.body
+
+        await heroModel.replaceOne({
+            name: {
+                $regex: new RegExp("^" + nameHero, "i")
+            }
+        }, newValuesHero)
+
+        res.json({
+            message: `${nameHero} was replaced!`
+        })
+
+    } catch (err) {
+        console.error(err)
+
+        res.status(500).json({ errorMessage: "There was a problem :(" })
+    }
+
+})
+
+app.get("*", (req, res) => {
+    res.json({
+        errorMessage: "The route was not found"
+    }, 404)
+})
 
 app.listen(port, () => {
-    console.log("Server is listenin at port ", port);
+    console.log("Server is listening at port ", port);
 })
-
-
-
