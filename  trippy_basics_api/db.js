@@ -59,15 +59,5 @@ const restaurantSchema = mongoose.Schema({
 
 const restaurant = mongoose.model("restaurant", restaurantSchema)
 
-app.get("/hotel", (req, res) => {
-    try {
-        const hotel = await hotel.find()
 
-        res.json(hotel)
-    } catch (err) {
-        console.error(err)
-
-        res.json({ errorMessage: "There was a problem :(" }, 500)
-    }
-
-})
+  
