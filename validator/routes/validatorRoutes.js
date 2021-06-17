@@ -6,10 +6,9 @@ router.get("/user", sendUser)
 const { getUser, getUsers, addUser } = require("../controllers/UserControllers")
 const { validationUsers } = require("../middlewares/validationsMiddlewares")
 
-router.get("/", getHotels)
-
-router.get("/:id", getHotel)
-
-router.post("/", validationHotels, addHotel)
+router.get("/:",sendUserByEmail,) 
+router.get("/:",sendUserById,)
+router.get("/:",sendUserByUsername,)
+     
 
 module.exports = router
