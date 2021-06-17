@@ -2,7 +2,7 @@ const mongoose = require("mongoose")
 const express = require("express")
 const cors = require("cors")
 const { debug } = require("./middlewares/debug")
-
+const validatorRoutes = require(".")
 const port = 8000
 
 const app = express()
