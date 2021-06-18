@@ -48,6 +48,42 @@ const addUser = (req, res) => {
         });
     }
 }
+const getId = async (req, res) => {
+
+    const userFound = req.params.id
+    console.log(req.params);
+    console.log(req.params.id);
+    try {
+        const users = await userModel.findById(userFound)
+
+        res.json(users)
+    } catch (err) {
+        console.error(err)
+
+        res.json({ errorMessage: "There was a probleme :(" }, 500)
+    }
+
+}
+const getEmail = async (req, res) => {
+
+    const userFound = req.params
+    console.log(req.params);
+    console.log(req.params.email);
+    try {
+        const users = await userModel.find(userFound)
+
+        res.json(users)
+    } catch (err) {
+        console.error(err)
+
+        res.json({ errorMessage: "There was a probleme :(" }, 500)
+    }
+
+}
 module.exports = {
     getUsers,
-    getUser}
+    getUser,
+    getEmail,
+    getId,
+    addUser
+} 
