@@ -9,6 +9,8 @@ const { validationUsers } = require("../middlewares/validationsMiddlewares")
 router.get("/:",sendUserByEmail,) 
 router.get("/:",sendUserById,)
 router.get("/:",sendUserByUsername,)
+router.get("/email/:email", getEmail)
+router.get("/user/:id", getId)
      
 
 module.exports = router
