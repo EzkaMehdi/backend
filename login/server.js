@@ -1,6 +1,10 @@
 const express = require("express")
 const cors = require("cors")
 const mongoose = require("mongoose")
+const User = require('./user')
+const config = require('./config')
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 mongoose.connect("mongodb://localhost:27017/login", { useNewUrlParser: true, useUnifiedTopology: true }, (err) => {
     if (err) {
