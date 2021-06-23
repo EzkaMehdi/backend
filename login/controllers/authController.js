@@ -2,6 +2,19 @@ const userModel = require("../models/user")
 const bcryptjs = require("bcryptjs")
 const jwt = require("jsonwebtoken")
 const config = require("../config.js")
+const nodemailer = require("nodemailer");
+
+
+const user = config.user;
+const pass = config.pass;
+
+const transport = nodemailer.createTransport({
+  service: "Gmail",
+  auth: {
+    user: user,
+    pass: pass,
+  },
+});
 
 const signup = async (req, res) => {
     try {
@@ -43,5 +56,20 @@ const login = async (req, res) => {
         res.status(500).json({ message: "There was an error while treating the request" })
     }
 }
+user.save((err) => {
+    if (err) {
+      res.status(500).send({ message: err });
+           return;
+        }
+       res.send({
+           message:
+             "User was registered successfully! Please check your email",
+        });
 
+      nodemailer.sendConfirmationEmail(
+         user.username,
+         user.email,
+         user.confirmationCode
+  );
+});
 module.exports = { signup , login }
